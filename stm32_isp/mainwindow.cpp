@@ -25,10 +25,10 @@ MainWindow::MainWindow(QWidget *parent) :
     }
     connect(port,SIGNAL(triggered(QAction*)),this,SLOT(port_menu_click(QAction*)));
     QStringList Baudrate;
-    Baudrate.append("460800");
-    Baudrate.append("256000");
-    Baudrate.append("230400");
-    Baudrate.append("128000");
+//    Baudrate.append("460800");
+//    Baudrate.append("256000");
+//    Baudrate.append("230400");
+//    Baudrate.append("128000");
     Baudrate.append("115200");
     Baudrate.append("76800");
     Baudrate.append("57600");
@@ -41,31 +41,36 @@ MainWindow::MainWindow(QWidget *parent) :
     {
         QAction *action = new QAction(baud,this);
         baudrate_menu->addAction(action);
-//        qDebug()<<baud;
     }
    connect(baudrate_menu,SIGNAL(triggered(QAction*)),this,SLOT(baud_menu_click(QAction*)));
 
    current_baudrate = Baudrate.at(0).toInt();
    serial_port_init();
+
+   timer = new QTimer(this);
+   connect(timer,SIGNAL(timeout()),this,SLOT(timer_update()));
    connect(&serial, &QSerialPort::readyRead, this,&MainWindow::serial_read_dat);
+}
+
+void MainWindow::timer_update(void)
+{
+
+    isp_send_cmd_task();
+    qDebug()<<"Time update";
 }
 
 
 void MainWindow::serial_read_dat(void)
 {
     qDebug()<<serial.readAll();
-//    qDebug()<<
 }
 
 
 void MainWindow::port_menu_click(QAction* act)
 {
-//    qDebug()<<"Port action click: "<<act->text();
     for(QAction *action:port->actions())
     {
         action->setIcon(QIcon::fromTheme("document-save", QIcon(":/images/none.png")));
-
-//        qDebug()<<action->text();
     }
     current_port = act->text().split(":").at(0);
     act->setIcon(QIcon::fromTheme("document-save", QIcon(":/images/select.png")));
@@ -90,7 +95,6 @@ void MainWindow::baud_menu_click(QAction* act)
 
 void MainWindow::serial_port_init(void)
 {
-
     serial.setDataBits(QSerialPort::Data8);
     serial.setParity(QSerialPort::NoParity);
     serial.setStopBits(QSerialPort::OneStop);
@@ -108,6 +112,7 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+
 void MainWindow::serial_open(void)
 {
     if(serial.isOpen() == false || serial.portName() != current_port || serial.baudRate() != current_baudrate)
@@ -121,11 +126,69 @@ void MainWindow::serial_open(void)
         }
     }
 }
-void MainWindow::on_pushButton_clicked()
+
+
+int MainWindow::stm32_sync(void)
 {
+    QByteArray readed;
     serial_open();
     char start = 0x7f;
     serial.write(&start,1);
+    return -1;
+}
+
+
+void MainWindow::isp_send_cmd_task(void)
+{
+    uint8_t cmd = send_buf[send_index];
+    serial.write((char *)&cmd,1);
+    send_index ++ ;
+    if(send_index == send_buf.length())
+    {
+           timer->stop();
+           send_index = 0;
+    }
+}
+
+
+int MainWindow::stm32_get(void)
+{
+    QByteArray readed;
+    serial_open();
+    send_buf.resize(2);
+    send_buf[0] = 0x00;
+    send_buf[1] = 0xff;
+    send_index = 0;
+    timer->start(1);
+    return -1;
+}
+
+void MainWindow::stm32_get_version(void)
+{
+    QByteArray readed;
+    serial_open();
+    send_buf.resize(2);
+    send_buf[0] = 0x01;
+    send_buf[1] = 0xfe;
+    send_index = 0;
+    timer->start(1);
+}
+
+void MainWindow::stm32_get_id(void)
+{
+    QByteArray readed;
+    serial_open();
+    send_buf.resize(2);
+    send_buf[0] = 0x02;
+    send_buf[1] = 0xfd;
+    send_index = 0;
+    timer->start(1);
+}
+
+
+void MainWindow::on_pushButton_clicked()
+{
+    stm32_sync();
 }
 
 void MainWindow::on_pushButton_2_clicked()
@@ -135,7 +198,15 @@ void MainWindow::on_pushButton_2_clicked()
 
 void MainWindow::on_pushButton_3_clicked()
 {
-    serial_open();
-    uint8_t start[2] = {0x00,0xff};
-    serial.write((const char *)&start,2);
+    stm32_get();
+}
+
+void MainWindow::on_pushButton_4_clicked()
+{
+    stm32_get_id();
+}
+
+void MainWindow::on_pushButton_5_clicked()
+{
+    stm32_get_version();
 }

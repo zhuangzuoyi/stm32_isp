@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include "QSerialPort"
+#include "QTimer"
 
 namespace Ui {
 class MainWindow;
@@ -25,18 +26,30 @@ private slots:
 
     void serial_read_dat(void);
     void on_pushButton_3_clicked();
+    int stm32_sync(void);
+    int stm32_get(void);
+    void stm32_get_version(void);
+    void stm32_get_id(void);
+    void timer_update(void);
+    void on_pushButton_4_clicked();
+
+    void on_pushButton_5_clicked();
 
 private:
     Ui::MainWindow *ui;
     QMenu *port;
     QMenu *baudrate_menu;
 
+    QTimer *timer;
     QString current_port;
     int current_baudrate;
 
     QSerialPort serial;
 
     void serial_port_init(void);
+    void isp_send_cmd_task(void);
+    QByteArray send_buf;
+    int send_index;
 };
 
 #endif // MAINWINDOW_H
