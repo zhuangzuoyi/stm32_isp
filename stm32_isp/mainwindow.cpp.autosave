@@ -220,7 +220,6 @@ void MainWindow::stm32_isp_read_data(QByteArray  dat)
 }
 void MainWindow::serial_read_dat(void)
 {
-//    qDebug()<<serial.readAll();
     stm32_isp_read_data(serial.readAll());
 }
 
