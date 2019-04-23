@@ -4,6 +4,8 @@
 #include "QDebug"
 #include "QSerialPortInfo"
 #include "QAction"
+#include "send_thread.h"
+
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -28,7 +30,7 @@ MainWindow::MainWindow(QWidget *parent) :
 //    Baudrate.append("460800");
 //    Baudrate.append("256000");
 //    Baudrate.append("230400");
-//    Baudrate.append("128000");
+    Baudrate.append("128000");
     Baudrate.append("115200");
     Baudrate.append("76800");
     Baudrate.append("57600");
@@ -50,6 +52,8 @@ MainWindow::MainWindow(QWidget *parent) :
    timer = new QTimer(this);
    connect(timer,SIGNAL(timeout()),this,SLOT(timer_update()));
    connect(&serial, &QSerialPort::readyRead, this,&MainWindow::serial_read_dat);
+
+   sending_delay = 10;
 
    read_buf.clear();
 }
@@ -220,7 +224,6 @@ void MainWindow::stm32_isp_read_data(QByteArray  dat)
 }
 void MainWindow::serial_read_dat(void)
 {
-//    qDebug()<<serial.readAll();
     stm32_isp_read_data(serial.readAll());
 }
 
@@ -283,6 +286,8 @@ void MainWindow::serial_open(void)
             qDebug()<<"Open "<<current_port<<" faile";
             return;
         }
+        Sending.set_serial(&serial);
+        Sending.set_delay(10);
     }
 }
 
@@ -332,7 +337,9 @@ int MainWindow::stm32_get(void)
     readed.resize(2);
     readed[0] = 0x00;
     readed[1] = 0xff;
+//    unsigned char cmd[2] = {0x00,0xff};
     stm32_send_cmd(readed,Isp_get);
+//    serial.write((char *)&cmd,2);
     return -1;
 }
 
@@ -387,4 +394,21 @@ void MainWindow::on_pushButton_5_clicked()
 void MainWindow::show_msg(QString msg)
 {
     ui->sysmsg->append(msg);
+}
+
+void MainWindow::on_pushButton_6_clicked()
+{
+    sending_delay += 10;
+    Sending.set_delay(sending_delay);
+}
+
+void MainWindow::on_pushButton_7_clicked()
+{
+    QByteArray readed;
+    serial_open();
+    readed.resize(2);
+    readed[0] = 0x01;
+    readed[1] = 0xfe;
+    Sending.set_data(readed);
+    Sending.start();
 }

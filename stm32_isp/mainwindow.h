@@ -4,6 +4,8 @@
 #include <QMainWindow>
 #include "QSerialPort"
 #include "QTimer"
+#include "send_thread.h"
+
 
 namespace Ui {
 class MainWindow;
@@ -47,6 +49,10 @@ private slots:
 
     void on_pushButton_5_clicked();
 
+    void on_pushButton_6_clicked();
+
+    void on_pushButton_7_clicked();
+
 private:
     Ui::MainWindow *ui;
     QMenu *port;
@@ -76,6 +82,9 @@ private:
     void stm32_send_cmd(QByteArray cmd_data,int cmd);
     void stm32_isp_read_data(QByteArray  dat);
     void show_msg(QString msg);
+
+    send_thread Sending;
+    unsigned long sending_delay;
 };
 
 #endif // MAINWINDOW_H
