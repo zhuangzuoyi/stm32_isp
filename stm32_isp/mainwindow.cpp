@@ -30,7 +30,7 @@ MainWindow::MainWindow(QWidget *parent) :
 //    Baudrate.append("460800");
 //    Baudrate.append("256000");
 //    Baudrate.append("230400");
-    Baudrate.append("128000");
+//    Baudrate.append("128000");
     Baudrate.append("115200");
     Baudrate.append("76800");
     Baudrate.append("57600");
@@ -54,14 +54,15 @@ MainWindow::MainWindow(QWidget *parent) :
    connect(&serial, &QSerialPort::readyRead, this,&MainWindow::serial_read_dat);
 
    sending_delay = 10;
-
+   Sending = new send_thread();
+   connect(Sending, SIGNAL(timerout()), this, SLOT(isp_send_task()));
    read_buf.clear();
 }
 
 void MainWindow::timer_update(void)
 {
-    isp_send_cmd_task();
-    qDebug()<<"Time update";
+//    isp_send_cmd_task();
+//    qDebug()<<"Time update";
 }
 
 void MainWindow::stm32_isp_read_data(QByteArray  dat)
@@ -197,7 +198,6 @@ void MainWindow::stm32_isp_read_data(QByteArray  dat)
 
                 show_msg("get id:"+id);
 
-                show_msg("get id");
                 qDebug()<<read_buf;
                 read_buf.clear();
             }
@@ -286,8 +286,7 @@ void MainWindow::serial_open(void)
             qDebug()<<"Open "<<current_port<<" faile";
             return;
         }
-        Sending.set_serial(&serial);
-        Sending.set_delay(10);
+        Sending->set_delay(1);
     }
 }
 
@@ -302,7 +301,10 @@ void MainWindow::stm32_send_cmd(QByteArray cmd_data,int cmd)
     send_index = 0;
     current_cmd_status = 1;
     current_cmd = cmd;
-    timer->start(1);
+
+    Sending->set_data(send_buf);
+    Sending->start();
+//    timer->start(1);
 }
 
 int MainWindow::stm32_sync(void)
@@ -319,16 +321,27 @@ int MainWindow::stm32_sync(void)
 
 void MainWindow::isp_send_cmd_task(void)
 {
+//    uint8_t cmd = send_buf[send_index];
+//    serial.write((char *)&cmd,1);
+//    send_index ++ ;
+//    if(send_index == send_buf.length())
+//    {
+//           timer->stop();
+//           send_index = 0;
+//    }
+}
+
+void MainWindow::isp_send_task(void)
+{
+    qDebug()<<"Sending";
     uint8_t cmd = send_buf[send_index];
     serial.write((char *)&cmd,1);
     send_index ++ ;
     if(send_index == send_buf.length())
     {
-           timer->stop();
            send_index = 0;
     }
 }
-
 
 int MainWindow::stm32_get(void)
 {
@@ -398,8 +411,8 @@ void MainWindow::show_msg(QString msg)
 
 void MainWindow::on_pushButton_6_clicked()
 {
-    sending_delay += 10;
-    Sending.set_delay(sending_delay);
+    sending_delay += 1;
+    Sending->set_delay(sending_delay);
 }
 
 void MainWindow::on_pushButton_7_clicked()
@@ -407,8 +420,12 @@ void MainWindow::on_pushButton_7_clicked()
     QByteArray readed;
     serial_open();
     readed.resize(2);
-    readed[0] = 0x01;
-    readed[1] = 0xfe;
-    Sending.set_data(readed);
-    Sending.start();
+    readed[0] = 0x11;
+    readed[1] = 0xee;
+    stm32_send_cmd(readed,Isp_Read_men);
+}
+
+void MainWindow::on_clear_clicked()
+{
+    this->ui->sysmsg->clear();
 }

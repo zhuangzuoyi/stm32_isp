@@ -15,12 +15,11 @@ public:
     void set_serial(QSerialPort *com);
     void set_delay(unsigned long time);
 signals:
-
+    void timerout(void);
 public slots:
 
 private:
     QByteArray cmd;
-    QSerialPort *serial;
     unsigned long Delay;
 protected:
     void run();
